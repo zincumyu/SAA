@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 学习平台</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.prod.js"></script>
+    <style>
+        /* ========== 全局 ========== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'PingFang SC', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        .btn { padding: 10px 24px; border: none; border-radius: 8px; font-size: 0.9rem; cursor: pointer; font-weight: 600; transition: all 0.15s; }
+        .btn-primary { background: #6366f1; color: white; }
+        .btn-primary:hover { background: #4f46e5; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-outline { background: transparent; color: #94a3b8; border: 1px solid #475569; }
+        .btn-outline:hover { border-color: #6366f1; color: #e2e8f0; }
+        .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+
+        /* ========== 欢迎页 ========== */
+        .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 24px; text-align: center; padding: 20px; }
+        .welcome h1 { font-size: 3rem; background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .welcome p { color: #94a3b8; font-size: 1.1rem; max-width: 500px; line-height: 1.8; }
+        .welcome .features { display: flex; gap: 20px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+        .welcome .feature-card { background: #1e293b; border-radius: 12px; padding: 20px 24px; width: 160px; border: 1px solid #334155; }
+        .welcome .feature-card .icon { font-size: 2rem; margin-bottom: 8px; }
+        .welcome .feature-card .title { font-weight: 600; margin-bottom: 4px; }
+        .welcome .feature-card .desc { font-size: 0.8rem; color: #94a3b8; }
+
+        /* ========== 登录/注册页 ========== */
+        .auth-page { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 16px; }
+        .auth-page .card { background: #1e293b; border-radius: 16px; padding: 40px; width: 380px; border: 1px solid #334155; }
+        .auth-page h2 { text-align: center; margin-bottom: 24px; font-size: 1.5rem; }
+        .auth-page .tabs { display: flex; margin-bottom: 24px; border-radius: 8px; overflow: hidden; border: 1px solid #334155; }
+        .auth-page .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-size: 0.9rem; color: #94a3b8; background: transparent; transition: all 0.15s; }
+        .auth-page .tab.active { background: #6366f1; color: white; }
+        .auth-page label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 4px; }
+        .auth-page input { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; font-size: 0.95rem; margin-bottom: 12px; outline: none; }
+        .auth-page input:focus { border-color: #6366f1; }
+        .auth-page .btn { width: 100%; margin-top: 8px; }
+        .auth-page .error { color: #f87171; font-size: 0.85rem; text-align: center; min-height: 20px; }
+        .auth-page .success { color: #4ade80; font-size: 0.85rem; text-align: center; min-height: 20px; }
+        .auth-page .back { text-align: center; margin-top: 10px; }
+        .auth-page .back a { color: #6366f1; text-decoration: none; font-size: 0.85rem; cursor: pointer; }
+
+        /* ========== 主布局 ========== */
+        .layout { display: flex; height: 100vh; }
+        .sidebar { width: 260px; background: #1e293b; border-right: 1px solid #334155; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar .logo { font-size: 1.3rem; font-weight: 700; padding: 20px 20px 16px; background: linear-gradient(135deg, #6366f1, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; flex-shrink: 0; }
+        .sidebar .menu-item { padding: 10px 20px; cursor: pointer; display: flex; align-items: center; gap: 10px; color: #94a3b8; font-size: 0.9rem; transition: all 0.15s; flex-shrink: 0; }
+        .sidebar .menu-item:hover, .sidebar .menu-item.active { color: #e2e8f0; background: #334155; }
+        .sidebar .session-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; margin-top: 8px; border-top: 1px solid #1e293b; padding-top: 10px; }
+        .sidebar .session-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 20px 10px; flex-shrink: 0; }
+        .sidebar .session-header span { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sidebar .session-header .new-btn { background: none; border: 1px solid #475569; color: #94a3b8; border-radius: 6px; padding: 3px 10px; font-size: 0.75rem; cursor: pointer; transition: all 0.15s; }
+        .sidebar .session-header .new-btn:hover { border-color: #6366f1; color: #e2e8f0; }
+        .sidebar .session-list { flex: 1; overflow-y: auto; padding: 0 8px; }
+        .sidebar .session-item { padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; color: #94a3b8; display: flex; align-items: center; gap: 8px; transition: all 0.1s; margin-bottom: 2px; }
+        .sidebar .session-item:hover { background: #334155; color: #e2e8f0; }
+        .sidebar .session-item.active { background: #334155; color: #e2e8f0; }
+        .sidebar .session-item .s-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; }
+        .sidebar .session-item .s-del { opacity: 0; font-size: 0.9rem; color: #f87171; transition: opacity 0.15s; flex-shrink: 0; line-height: 1; }
+        .sidebar .session-item:hover .s-del { opacity: 1; }
+        .sidebar .user-info { padding: 14px 20px; border-top: 1px solid #334155; font-size: 0.85rem; color: #94a3b8; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .sidebar .logout-btn { margin-left: auto; color: #f87171; cursor: pointer; font-size: 0.8rem; }
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* ========== 聊天界面 ========== */
+        .chat-area { display: flex; flex-direction: column; height: 100%; }
+        .chat-header { padding: 14px 24px; border-bottom: 1px solid #1e293b; font-weight: 600; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .chat-header .model-badge { font-size: 0.7rem; background: #334155; color: #94a3b8; padding: 3px 10px; border-radius: 20px; font-weight: 400; }
+        .chat-header .online-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; flex-shrink: 0; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+        .chat-messages .welcome-state { text-align: center; padding: 60px 20px; margin: auto; max-width: 520px; }
+        .chat-messages .welcome-state .welcome-icon { font-size: 3.5rem; margin-bottom: 16px; }
+        .chat-messages .welcome-state h3 { font-size: 1.3rem; margin-bottom: 8px; color: #e2e8f0; }
+        .chat-messages .welcome-state .welcome-desc { color: #94a3b8; font-size: 0.9rem; line-height: 1.7; margin-bottom: 24px; }
+        .chat-messages .welcome-state .suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .chat-messages .welcome-state .suggestion-chip { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 8px 18px; font-size: 0.85rem; color: #c4b5fd; cursor: pointer; transition: all 0.15s; }
+        .chat-messages .welcome-state .suggestion-chip:hover { border-color: #6366f1; background: #1e1e3f; }
+
+        .message { display: flex; gap: 10px; max-width: 78%; animation: msgIn 0.25s ease-out; }
+        @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .message.user { align-self: flex-end; flex-direction: row-reverse; }
+        .message.assistant { align-self: flex-start; }
+        .message .avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0; }
+        .message.user .avatar { background: #6366f1; }
+        .message.assistant .avatar { background: #334155; }
+        .message .bubble { padding: 12px 16px; border-radius: 16px; line-height: 1.65; font-size: 0.9rem; }
+        .message.user .bubble { background: #6366f1; color: #fff; border-bottom-right-radius: 4px; }
+        .message.assistant .bubble { background: #1e293b; border: 1px solid #334155; border-bottom-left-radius: 4px; }
+        .message .bubble p { margin: 0 0 8px; }
+        .message .bubble p:last-child { margin-bottom: 0; }
+        .message .bubble ul, .message .bubble ol { margin: 8px 0; padding-left: 20px; }
+        .message .bubble li { margin-bottom: 4px; }
+        .message .bubble code { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 0.82rem; font-family: 'Consolas', 'Courier New', monospace; }
+        .message.user .bubble code { background: rgba(255,255,255,0.2); }
+        .message .bubble pre { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px 16px; overflow-x: auto; margin: 8px 0; font-size: 0.82rem; line-height: 1.5; }
+        .message .bubble pre code { background: none; padding: 0; }
+        .message .bubble strong { color: #e2e8f0; }
+        .message.user .bubble strong { color: #fff; }
+        .message .bubble blockquote { border-left: 3px solid #6366f1; padding-left: 12px; color: #94a3b8; margin: 8px 0; }
+
+        .chat-input-area { padding: 14px 24px; border-top: 1px solid #1e293b; display: flex; gap: 10px; align-items: flex-end; background: #0f172a; flex-shrink: 0; }
+        .chat-input-area .input-wrapper { flex: 1; position: relative; }
+        .chat-input-area textarea { width: 100%; padding: 12px 50px 12px 16px; border-radius: 16px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 0.9rem; resize: none; outline: none; font-family: inherit; min-height: 46px; max-height: 150px; line-height: 1.5; transition: border-color 0.15s; }
+        .chat-input-area textarea:focus { border-color: #6366f1; }
+        .chat-input-area .send-btn { width: 42px; height: 42px; background: #6366f1; color: white; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; transition: all 0.15s; }
+        .chat-input-area .send-btn:hover { background: #4f46e5; transform: scale(1.05); }
+        .chat-input-area .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        .scroll-down-btn { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); width: 36px; height: 36px; background: #334155; border: 1px solid #475569; border-radius: 50%; color: #e2e8f0; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; z-index: 10; transition: all 0.15s; }
+        .scroll-down-btn:hover { background: #475569; }
+        .typing-indicator { display: flex; gap: 4px; padding: 4px 0; }
+        .typing-indicator span { width: 7px; height: 7px; background: #94a3b8; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+        /* ========== 图片识别页 ========== */
+        .image-page { padding: 24px; max-width: 600px; height: 100%; overflow-y: auto; }
+        .image-page h3 { margin-bottom: 16px; }
+        .image-page .dropzone { border: 2px dashed #475569; border-radius: 16px; padding: 60px 20px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 16px; }
+        .image-page .dropzone:hover { border-color: #6366f1; background: #1e293b; }
+        .image-page img { max-width: 100%; max-height: 300px; border-radius: 12px; margin-bottom: 12px; }
+        .image-page .result { background: #1e293b; border-radius: 12px; padding: 16px; margin-top: 12px; line-height: 1.6; white-space: pre-wrap; }
+
+        /* ========== 错题本页面 ========== */
+        .errorbook-page { padding: 24px; height: 100%; display: flex; flex-direction: column; }
+        .errorbook-page .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .errorbook-page .header h3 { font-size: 1.2rem; }
+        .errorbook-page .filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+        .errorbook-page .filters input, .errorbook-page .filters select { padding: 8px 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 0.85rem; outline: none; }
+        .errorbook-page .filters input:focus { border-color: #6366f1; }
+        .errorbook-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .eb-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px 20px; display: flex; gap: 16px; align-items: flex-start; transition: border-color 0.15s; }
+        .eb-card:hover { border-color: #475569; }
+        .eb-card .eb-img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: #0f172a; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 1.5rem; }
+        .eb-card .eb-content { flex: 1; min-width: 0; }
+        .eb-card .eb-question { font-weight: 600; margin-bottom: 4px; word-break: break-all; }
+        .eb-card .eb-answer { color: #94a3b8; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+        .eb-card .eb-meta { display: flex; gap: 12px; margin-top: 6px; font-size: 0.75rem; color: #64748b; }
+        .eb-card .eb-meta .tag { background: #334155; padding: 2px 8px; border-radius: 4px; }
+        .eb-card .eb-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .empty-state { text-align: center; color: #64748b; padding: 60px 0; }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+        /* ========== 弹窗 Modal ========== */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .modal { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 28px; width: 500px; max-height: 85vh; overflow-y: auto; }
+        .modal h4 { margin-bottom: 20px; font-size: 1.1rem; }
+        .modal label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 4px; margin-top: 12px; }
+        .modal input, .modal textarea, .modal select { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; font-size: 0.9rem; outline: none; font-family: inherit; }
+        .modal textarea { min-height: 80px; resize: vertical; }
+        .modal input:focus, .modal textarea:focus { border-color: #6366f1; }
+        .modal .img-preview { max-width: 100%; max-height: 160px; border-radius: 8px; margin-top: 8px; }
+        .modal .img-upload-area { border: 1px dashed #475569; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; margin-top: 4px; transition: all 0.15s; }
+        .modal .img-upload-area:hover { border-color: #6366f1; background: #0f172a; }
+        .modal .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .modal .delete-img { color: #f87171; font-size: 0.8rem; cursor: pointer; margin-top: 4px; display: inline-block; }
+
+        /* ========== 确认弹窗 ========== */
+        .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 200; }
+        .confirm-box { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 28px; width: 360px; text-align: center; }
+        .confirm-box p { margin-bottom: 20px; color: #94a3b8; }
+        .confirm-box .actions { display: flex; gap: 10px; justify-content: center; }
+
+        /* ========== 分析页 ========== */
+        .analysis-page { padding: 24px; max-width: 900px; height: 100%; display: flex; flex-direction: column; }
+        .analysis-page .top-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .analysis-page .top-bar h3 { flex: 1; font-size: 1.2rem; }
+        .analysis-page .item-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; display: flex; gap: 20px; margin-bottom: 20px; align-items: flex-start; }
+        .analysis-page .item-card .item-img { width: 160px; height: 160px; border-radius: 10px; object-fit: cover; background: #0f172a; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 3rem; }
+        .analysis-page .item-card .item-info { flex: 1; min-width: 0; }
+        .analysis-page .item-card .item-info .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .analysis-page .item-card .item-info .value { color: #e2e8f0; margin-bottom: 12px; line-height: 1.6; white-space: pre-wrap; }
+        .analysis-page .item-card .item-info .tag { display: inline-block; background: #334155; padding: 3px 10px; border-radius: 4px; font-size: 0.8rem; color: #94a3b8; }
+        .analysis-page .report-section { flex: 1; overflow-y: auto; }
+        .analysis-page .report-section h4 { font-size: 1rem; margin-bottom: 12px; color: #6366f1; }
+        .analysis-page .report-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px 24px; line-height: 1.8; font-size: 0.9rem; white-space: pre-wrap; }
+        .analysis-page .report-card h2 { font-size: 1.1rem; margin-bottom: 8px; color: #e2e8f0; }
+        .analysis-page .report-card h3 { font-size: 1rem; margin: 12px 0 6px; color: #c4b5fd; }
+        .analysis-page .report-card strong { color: #e2e8f0; }
+        .analysis-page .report-card code { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
+        .analysis-page .report-card blockquote { border-left: 3px solid #6366f1; padding-left: 12px; color: #94a3b8; margin: 8px 0; }
+        .analysis-page .actions-bar { display: flex; gap: 10px; padding-top: 16px; border-top: 1px solid #1e293b; margin-top: 16px; }
+        .analysis-page .empty-analysis { text-align: center; padding: 60px 20px; color: #64748b; }
+        .analysis-page .empty-analysis .icon { font-size: 4rem; margin-bottom: 12px; }
+        .analysis-page .loading-state { text-align: center; padding: 40px; color: #94a3b8; }
+        .spin { display: inline-block; animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* ========== 分析报告列表页 ========== */
+        .analyses-list-page { padding: 24px; max-width: 900px; height: 100%; display: flex; flex-direction: column; overflow-y: auto; }
+        .analyses-list-page h3 { margin-bottom: 20px; font-size: 1.2rem; }
+        .analyses-list-page .analysis-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px 20px; display: flex; gap: 16px; align-items: flex-start; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s; }
+        .analyses-list-page .analysis-card:hover { border-color: #6366f1; }
+        .analyses-list-page .analysis-card .thumb { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; background: #0f172a; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 1.5rem; }
+        .analyses-list-page .analysis-card .info { flex: 1; min-width: 0; }
+        .analyses-list-page .analysis-card .info .title { font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .analyses-list-page .analysis-card .info .preview { color: #94a3b8; font-size: 0.8rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .analyses-list-page .analysis-card .info .meta { display: flex; gap: 12px; margin-top: 6px; font-size: 0.75rem; color: #64748b; }
+        .analyses-list-page .analysis-card .info .meta .tag { background: #334155; padding: 2px 8px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <router-view></router-view>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, onMounted, nextTick, watch } = Vue;
+        const { createRouter, createWebHashHistory, useRouter, useRoute } = VueRouter;
+
+        // ==================== 全局状态 ====================
+        const store = reactive({
+            user: null,
+            token: localStorage.getItem('token') || null,
+            username: localStorage.getItem('username') || null,
+            sessions: [],
+            currentSessionId: null,
+            isLoggedIn() { return !!this.token }
+        });
+
+        // 封装 fetch，自动带 token
+        async function apiFetch(url, options = {}) {
+            const headers = { ...(options.headers || {}) };
+            if (store.token) {
+                headers['Authorization'] = `Bearer ${store.token}`;
+            }
+            if (!(options.body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+            }
+            return fetch(url, { ...options, headers });
+        }
+
+        // 保存登录状态到 localStorage
+        function saveLogin(token, username) {
+            store.token = token;
+            store.username = username;
+            store.user = { username };
+            localStorage.setItem('token', token);
+            localStorage.setItem('username', username);
+        }
+
+        function clearLogin() {
+            store.token = null;
+            store.user = null;
+            store.username = null;
+            store.sessions = [];
+            store.currentSessionId = null;
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+        }
+
+        // ==================== 页面组件 ====================
+
+        // --- 欢迎页 ---
+        const WelcomePage = {
+            template: `
+                <div class="welcome">
+                    <h1>🧠 AI 学习平台</h1>
+                    <p>你的智能学习伙伴 — AI 对话辅导、图片识别、错题管理，一站式搞定。</p>
+                    <div style="display:flex;gap:12px;margin-top:8px;">
+                        <button class="btn btn-primary" @click="$router.push('/login')">开始使用</button>
+                        <button class="btn btn-outline" @click="$router.push('/chat')">先体验一下</button>
+                    </div>
+                </div>
+            `
+        };
+
+        // --- 登录/注册页 ---
+        const AuthPage = {
+            setup() {
+                const router = useRouter();
+                const isLogin = ref(true);
+                const username = ref('');
+                const password = ref('');
+                const confirmPassword = ref('');
+                const error = ref('');
+                const success = ref('');
+                const loading = ref(false);
+
+                async function submit() {
+                    error.value = '';
+                    success.value = '';
+                    if (!username.value || !password.value) { error.value = '请填写用户名和密码'; return; }
+                    if (!isLogin.value && password.value !== confirmPassword.value) { error.value = '两次密码不一致'; return; }
+
+                    loading.value = true;
+                    const url = isLogin.value ? '/api/login' : '/api/register';
+                    try {
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username: username.value, password: password.value })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            saveLogin(data.token, data.username);
+                            if (!isLogin.value) success.value = '注册成功，正在跳转...';
+                            setTimeout(() => router.push('/chat'), 800);
+                        } else {
+                            error.value = data.error || '操作失败';
+                        }
+                    } catch (e) {
+                        error.value = '网络错误，请确认后端已启动';
+                    } finally {
+                        loading.value = false;
+                    }
+                }
+
+                return { isLogin, username, password, confirmPassword, error, success, loading, submit };
+            },
+            template: `
+                <div class="auth-page">
+                    <div class="card">
+                        <h2>{{ isLogin ? '🔐 登录' : '📝 注册' }}</h2>
+                        <div class="tabs">
+                            <div class="tab" :class="{active:isLogin}" @click="isLogin=true;error='';success=''">登录</div>
+                            <div class="tab" :class="{active:!isLogin}" @click="isLogin=false;error='';success=''">注册</div>
+                        </div>
+                        <label>用户名</label>
+                        <input v-model="username" type="text" placeholder="输入用户名" @keyup.enter="submit" />
+                        <label>密码</label>
+                        <input v-model="password" type="password" placeholder="输入密码" @keyup.enter="submit" />
+                        <label v-if="!isLogin">确认密码</label>
+                        <input v-if="!isLogin" v-model="confirmPassword" type="password" placeholder="再次输入密码" @keyup.enter="submit" />
+                        <div class="error">{{ error }}</div>
+                        <div class="success">{{ success }}</div>
+                        <button class="btn btn-primary" @click="submit" :disabled="loading">
+                            {{ loading ? '处理中...' : (isLogin ? '登 录' : '注 册') }}
+                        </button>
+                        <div class="back"><a @click="$router.push('/')">← 返回首页</a></div>
+                    </div>
+                </div>
+            `
+        };
+
+        // --- 主布局（含侧边栏 + 历史记录） ---
+        const MainLayout = {
+            setup() {
+                const router = useRouter();
+
+                async function loadSessions() {
+                    if (!store.isLoggedIn()) return;
+                    try {
+                        const res = await apiFetch('/api/chat/sessions');
+                        const data = await res.json();
+                        if (data.success) store.sessions = data.sessions;
+                    } catch (e) { /* 静默 */ }
+                }
+
+                function newChat() {
+                    store.currentSessionId = null;
+                    router.push('/chat');
+                }
+
+                function openSession(id) {
+                    store.currentSessionId = id;
+                    router.push('/chat');
+                }
+
+                async function deleteSession(id) {
+                    if (!confirm('确定删除这条对话记录吗？')) return;
+                    try {
+                        const res = await apiFetch('/api/chat/sessions/' + id, { method: 'DELETE' });
+                        const data = await res.json();
+                        if (data.success) {
+                            store.sessions = store.sessions.filter(s => s.id !== id);
+                            if (store.currentSessionId === id) {
+                                store.currentSessionId = null;
+                                router.push('/chat');
+                            }
+                        }
+                    } catch (e) { /* 静默 */ }
+                }
+
+                function logout() {
+                    clearLogin();
+                    router.push('/');
+                }
+
+                function fmtTime(t) {
+                    if (!t) return '';
+                    return t.replace('T', ' ').substring(0, 16);
+                }
+
+                onMounted(loadSessions);
+                return { store, newChat, openSession, deleteSession, logout, loadSessions, fmtTime };
+            },
+            template: `
+                <div class="layout">
+                    <aside class="sidebar">
+                        <div class="logo" @click="$router.push('/chat')" style="cursor:pointer;">🧠 AI 学习平台</div>
+                        <div class="menu-item" :class="{active:$route.path.startsWith('/chat')}" @click="$router.push('/chat')">💬 AI 对话</div>
+                        <div class="menu-item" :class="{active:$route.path==='/image'}" @click="$router.push('/image')">🖼️ 图片识别</div>
+                        <div class="menu-item" :class="{active:$route.path==='/errorbook'}" @click="$router.push('/errorbook')">📝 错题本</div>
+                        <div class="menu-item" :class="{active:$route.path==='/analyses'}" @click="$router.push('/analyses')">📊 分析报告</div>
+                        <div class="menu-item" :class="{active:$route.path==='/pytest'}" @click="$router.push('/pytest')">📝 python测试</div>
+
+                        <!-- 历史记录 -->
+                        <div class="session-section">
+                            <div class="session-header">
+                                <span>历史记录</span>
+                                <button class="new-btn" @click="newChat">+ 新对话</button>
+                            </div>
+                            <div class="session-list">
+                                <div v-for="s in store.sessions" :key="s.id"
+                                     class="session-item"
+                                     :class="{active: store.currentSessionId===s.id}"
+                                     @click="openSession(s.id)">
+                                    <span class="s-title">{{ s.title }}</span>
+                                    <span class="s-del" @click.stop="deleteSession(s.id)">×</span>
+                                </div>
+                                <div v-if="store.sessions.length===0" style="text-align:center;color:#475569;font-size:0.75rem;padding:20px 0;">
+                                    暂无历史记录
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="user-info">
+                            <span>👤 {{ store.username || '未登录' }}</span>
+                            <span class="logout-btn" @click="logout">退出</span>
+                        </div>
+                    </aside>
+                    <main class="main">
+                        <router-view></router-view>
+                    </main>
+                </div>
+            `
+        };
+        // --- python测试 ---#练手用
+        const Pytest = {
+            setup() {
+                const result = ref('没有覆写py01');
+                //调用api/re_python接口
+                //赋值给data
+                async function loadPlans() {
+                    const res = await apiFetch('/api/re_python',   
+                    {method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ code: "test" })
+                });
+                //写入数据
+                    const data = await res.json();
+                    result.value = data.item || '未收到结果';
+                    // if (data.success) result.value = data.items;
+                }
+                return {loadPlans,result };
+            },
+            template: `
+                <div style="padding:24px;">
+                    <h3>python测试01</h3>
+                    <button @click="loadPlans">加载数据</button>
+                    <div v-if="result" class="result">{{ result }}</div>
+                    <h3>html测试输入02</h3>
+                </div>
+            `
+        };
+        // --- AI 对话页 ---
+        const ChatPage = {
+            setup() {
+                const input = ref('');
+                const messages = ref([]);
+                const loading = ref(false);
+                const showScrollBtn = ref(false);
+                const localSessionId = ref(null);  // 当前会话 ID，纯本地管理
+
+                const suggestions = [
+                    '用费曼学习法解释牛顿第二定律',
+                    '帮我分析这道微积分题的错误原因',
+                    '如何设计一个高效的学习计划？',
+                    '用比喻的方式解释机器学习中的过拟合'
+                ];
+
+                // ======== 工具函数 ========
+
+                function renderMarkdown(text) {
+                    if (!text) return '';
+                    let html = text;
+                    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+                    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+                    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                    html = html.replace(/^### (.+)$/gm, '<h3 style="margin:12px 0 6px;font-size:1rem;color:#c4b5fd;">$1</h3>');
+                    html = html.replace(/^## (.+)$/gm, '<h2 style="margin:14px 0 8px;font-size:1.1rem;color:#e2e8f0;">$1</h2>');
+                    html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+                    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+                    html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
+                    html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+                    html = html.replace(/\n\n/g, '</p><p>');
+                    html = '<p>' + html + '</p>';
+                    html = html.replace(/<p><\/p>/g, '');
+                    html = html.replace(/<p><h/g, '<h');
+                    html = html.replace(/<\/h([23])><\/p>/g, '</h$1>');
+                    html = html.replace(/<p><ul>/g, '<ul>');
+                    html = html.replace(/<\/ul><\/p>/g, '</ul>');
+                    html = html.replace(/<p><blockquote>/g, '<blockquote>');
+                    html = html.replace(/<\/blockquote><\/p>/g, '</blockquote>');
+                    html = html.replace(/<p><pre>/g, '<pre>');
+                    html = html.replace(/<\/pre><\/p>/g, '</pre>');
+                    return html;
+                }
+
+                async function scrollToBottom() {
+                    await nextTick();
+                    const el = document.querySelector('.chat-messages');
+                    if (el) el.scrollTop = el.scrollHeight;
+                }
+
+                function onScroll(e) {
+                    const el = e.target;
+                    showScrollBtn.value = (el.scrollHeight - el.scrollTop - el.clientHeight) > 100;
+                }
+
+                // ======== 会话管理 ========
+
+                async function refreshSessions() {
+                    try {
+                        const res = await apiFetch('/api/chat/sessions');
+                        const data = await res.json();
+                        if (data.success) store.sessions = data.sessions;
+                    } catch (e) { /* 静默 */ }
+                }
+
+                async function loadSessionById(sid) {
+                    try {
+                        const res = await apiFetch('/api/chat/sessions/' + sid);
+                        const data = await res.json();
+                        if (data.success) {
+                            messages.value = data.messages;
+                            localSessionId.value = sid;
+                            store.currentSessionId = sid;
+                            await nextTick();
+                            await scrollToBottom();
+                        }
+                    } catch (e) { /* 静默 */ }
+                }
+
+                // ======== 核心：发送消息 ========
+
+                async function send(msgText) {
+                    if (typeof msgText !== 'string') msgText = input.value.trim();
+                    if (!msgText || loading.value) return;
+                    input.value = '';
+
+                    // 1. 添加用户消息
+                    messages.value.push({ role: 'user', content: msgText });
+                    await scrollToBottom();
+
+                    // 2. 请求 AI
+                    loading.value = true;
+                    let reply = '';
+                    try {
+                        const res = await fetch('/api/chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ message: msgText })
+                        });
+                        const data = await res.json();
+                        reply = data.reply || '未收到回复';
+                    } catch (e) {
+                        reply = '❌ 请求失败，请确认后端服务已启动';
+                    }
+                    // 3. 添加 AI 回复
+                    messages.value.push({ role: 'assistant', content: reply });
+                    loading.value = false;
+                    await scrollToBottom();
+
+                    // 4. 保存到服务器
+                    try {
+                        const saveRes = await apiFetch('/api/chat/save', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                session_id: localSessionId.value || 0,
+                                messages: [
+                                    { role: 'user', content: msgText },
+                                    { role: 'assistant', content: reply }
+                                ],
+                                title: localSessionId.value ? null : msgText.substring(0, 30)
+                            })
+                        });
+                        const saveData = await saveRes.json();
+                        if (saveData.success && saveData.session_id) {
+                            if (!localSessionId.value) {
+                                localSessionId.value = saveData.session_id;
+                                store.currentSessionId = saveData.session_id;
+                            }
+                            await refreshSessions();
+                        }
+                    } catch (e) { /* 保存失败不影响对话 */ }
+                }
+
+                // ======== 操作按钮 ========
+
+                function newChat() {
+                    localSessionId.value = null;
+                    store.currentSessionId = null;
+                    messages.value = [];
+                }
+
+                function exportChat() {
+                    if (messages.value.length === 0) { alert('没有对话内容可导出'); return; }
+                    const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+                    let text = `# AI 对话记录\n\n**导出时间**：${now}\n\n---\n\n`;
+                    messages.value.forEach(m => {
+                        text += `### ${m.role === 'user' ? '👤 用户' : '🤖 AI助教'}\n\n${m.content}\n\n---\n\n`;
+                    });
+                    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `AI对话_${now.replace(/:/g, '')}.md`;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                }
+
+                function handleKeydown(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        send();
+                    }
+                }
+
+                // ======== 初始化 ========
+
+                // 监听侧边栏会话切换
+                watch(() => store.currentSessionId, async (newId) => {
+                    if (newId && newId !== localSessionId.value) {
+                        await loadSessionById(newId);
+                    } else if (!newId && localSessionId.value) {
+                        // 被清空（如删除当前会话）
+                        newChat();
+                    }
+                });
+
+                onMounted(async () => {
+                    await refreshSessions();
+
+                    // 如果侧边栏已预设了会话，加载它
+                    if (store.currentSessionId) {
+                        await loadSessionById(store.currentSessionId);
+                        return;
+                    }
+
+                    // 否则加载最近一条
+                    if (store.sessions.length > 0) {
+                        const last = store.sessions[0];
+                        await loadSessionById(last.id);
+                    }
+                });
+
+                return {
+                    input, messages, loading, showScrollBtn, suggestions, localSessionId,
+                    send, newChat, exportChat, scrollToBottom, onScroll, renderMarkdown, handleKeydown
+                };
+            },
+            template: `
+                <div class="chat-area">
+                    <div class="chat-header">
+                        <div class="online-dot"></div>
+                        <span>AI 智能助教</span>
+                        <span class="model-badge">DeepSeek V4</span>
+                        <div style="flex:1;"></div>
+                        <button class="btn btn-outline btn-sm" @click="exportChat" :disabled="messages.length===0">📥</button>
+                        <button class="btn btn-outline btn-sm" @click="newChat">+ 新对话</button>
+                    </div>
+
+                    <div class="chat-messages" @scroll="onScroll" style="position:relative;">
+                        <div v-if="messages.length===0 && !loading" class="welcome-state">
+                            <div class="welcome-icon">🧠</div>
+                            <h3>你好，我是 AI 学习助教</h3>
+                            <p class="welcome-desc">我可以帮你解答题目、解释概念、分析错题、制定学习计划。试试下面的例子，或者直接输入你的问题。</p>
+                            <div class="suggestions">
+                                <div class="suggestion-chip" v-for="s in suggestions" :key="s" @click="send(s)">{{ s }}</div>
+                            </div>
+                        </div>
+
+                        <div v-for="(msg,i) in messages" :key="i" class="message" :class="msg.role">
+                            <div class="avatar">{{ msg.role==='user' ? '👤' : '🤖' }}</div>
+                            <div class="bubble">
+                                <span v-if="msg.role==='user'">{{ msg.content }}</span>
+                                <span v-else v-html="renderMarkdown(msg.content)"></span>
+                            </div>
+                        </div>
+
+                        <div v-if="loading" class="message assistant">
+                            <div class="avatar">🤖</div>
+                            <div class="bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>
+                        </div>
+
+                        <div v-if="showScrollBtn" class="scroll-down-btn" @click="scrollToBottom" title="回到底部">↓</div>
+                    </div>
+
+                    <div class="chat-input-area">
+                        <div class="input-wrapper">
+                            <textarea v-model="input" @keydown="handleKeydown" placeholder="输入你的问题，Enter 发送，Shift+Enter 换行" rows="1"></textarea>
+                        </div>
+                        <button class="send-btn" @click="send()" :disabled="!input.trim()||loading">↑</button>
+                    </div>
+                </div>
+            `
+        };
+
+        // --- 图片识别页 ---
+        const ImagePage = {
+            setup() {
+                const imageSrc = ref(null);
+                const result = ref('');
+                const loading = ref(false);
+
+                function handleFile(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = async (ev) => {
+                        imageSrc.value = ev.target.result;
+                        const base64 = ev.target.result.split(',')[1];
+                        loading.value = true; result.value = '';
+                        try {
+                            const res = await fetch('/api/image-recognize', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ image_base64: base64 })
+                            });
+                            const data = await res.json();
+                            result.value = data.reply || '未收到结果';
+                        } catch (e) {
+                            result.value = '❌ 请求失败';
+                        } finally { loading.value = false; }
+                    };
+                    reader.readAsDataURL(file);
+                }
+
+                return { imageSrc, result, loading, handleFile };
+            },
+            template: `
+                <div class="image-page">
+                    <h3>🖼️ AI 图片识别</h3>
+                    <div class="dropzone" @click="$refs.fileInput.click()">
+                        <div style="font-size:2.5rem;margin-bottom:8px;">📤</div>
+                        <p>点击上传图片</p><p style="color:#64748b;font-size:0.8rem;">支持 JPG / PNG / GIF</p>
+                        <input ref="fileInput" type="file" accept="image/*" @change="handleFile" style="display:none" />
+                    </div>
+                    <img v-if="imageSrc" :src="imageSrc" alt="上传的图片" />
+                    <div v-if="loading" style="color:#94a3b8;text-align:center;">⏳ 正在分析...</div>
+                    <div v-if="result" class="result">{{ result }}</div>
+                </div>
+            `
+        };
+
+        // --- 错题本页 ---
+        const ErrorbookPage = {
+            setup() {
+                const items = ref([]);
+                const loading = ref(false);
+                const keyword = ref('');
+                const filterSubject = ref('');
+
+                // 弹窗状态
+                const showModal = ref(false);
+                const isEditing = ref(false);
+                const editId = ref(null);
+                const form = reactive({ question: '', answer: '', subject: '', imageBase64: '', imageSrc: '' });
+
+                // 删除确认
+                const showConfirm = ref(false);
+                const deleteId = ref(null);
+
+                // 加载列表
+                async function loadItems() {
+                    try {
+                        const res = await apiFetch('/api/errorbook');
+                        const data = await res.json();
+                        if (res.status === 401) { clearLogin(); return; }
+                        if (data.success) items.value = data.items;
+                    } catch (e) { console.error(e); }
+                }
+
+                // 搜索/筛选
+                const filteredItems = Vue.computed(() => {
+                    let list = items.value;
+                    if (keyword.value) {
+                        const kw = keyword.value.toLowerCase();
+                        list = list.filter(i =>
+                            (i.question || '').toLowerCase().includes(kw) ||
+                            (i.answer || '').toLowerCase().includes(kw)
+                        );
+                    }
+                    if (filterSubject.value) {
+                        list = list.filter(i => i.subject === filterSubject.value);
+                    }
+                    return list;
+                });
+
+                // 所有科目（用于筛选下拉）
+                const subjects = Vue.computed(() => {
+                    const s = new Set(items.value.map(i => i.subject).filter(Boolean));
+                    return [...s];
+                });
+
+                // 打开添加弹窗
+                function openAdd() {
+                    isEditing.value = false;
+                    editId.value = null;
+                    form.question = ''; form.answer = ''; form.subject = '';
+                    form.imageBase64 = ''; form.imageSrc = '';
+                    showModal.value = true;
+                }
+
+                // 打开编辑弹窗
+                function openEdit(item) {
+                    isEditing.value = true;
+                    editId.value = item.id;
+                    form.question = item.question;
+                    form.answer = item.answer || '';
+                    form.subject = item.subject || '';
+                    form.imageSrc = item.image_url || '';
+                    form.imageBase64 = '';
+                    showModal.value = true;
+                }
+
+                // 图片选择
+                function handleImage(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        form.imageSrc = ev.target.result;
+                        form.imageBase64 = ev.target.result.split(',')[1];
+                    };
+                    reader.readAsDataURL(file);
+                }
+
+                function removeImage() {
+                    form.imageSrc = '';
+                    form.imageBase64 = '__DELETE__';
+                }
+
+                // 保存（添加或编辑）
+                async function saveItem() {
+                    if (!form.question.trim()) return;
+                    const body = {
+                        question: form.question,
+                        answer: form.answer,
+                        subject: form.subject,
+                        image_base64: form.imageBase64 || null
+                    };
+
+                    if (isEditing.value) {
+                        // 如果是删除图片
+                        if (form.imageBase64 === '__DELETE__') {
+                            body.keep_image = false;
+                            body.image_base64 = null;
+                        } else if (!form.imageBase64 && form.imageSrc) {
+                            // 没改图片，保持原样
+                            body.image_base64 = null;
+                            body.keep_image = true;
+                        }
+                        await apiFetch(`/api/errorbook/${editId.value}`, {
+                            method: 'PUT', body: JSON.stringify(body)
+                        });
+                    } else {
+                        await apiFetch('/api/errorbook', {
+                            method: 'POST', body: JSON.stringify(body)
+                        });
+                    }
+                    showModal.value = false;
+                    await loadItems();
+                }
+
+                // 确认删除
+                function confirmDelete(id) {
+                    deleteId.value = id;
+                    showConfirm.value = true;
+                }
+
+                async function doDelete() {
+                    await apiFetch(`/api/errorbook/${deleteId.value}`, { method: 'DELETE' });
+                    showConfirm.value = false;
+                    await loadItems();
+                }
+
+                // 格式化时间
+                function fmtTime(t) {
+                    if (!t) return '';
+                    return t.replace('T', ' ').substring(0, 16);
+                }
+
+                // ──── AI 分析 ────
+                const analyzingId = ref(null);
+                const router = useRouter();
+
+                async function startAnalysis(itemId) {
+                    analyzingId.value = itemId;
+                    try {
+                        const res = await apiFetch(`/api/errorbook/${itemId}/analyze`, { method: 'POST' });
+                        const data = await res.json();
+                        if (data.success) {
+                            router.push(`/analysis/${itemId}`);
+                        } else {
+                            alert(data.error || '分析失败');
+                        }
+                    } catch (e) {
+                        alert('请求失败，请确认后端已启动');
+                    } finally {
+                        analyzingId.value = null;
+                    }
+                }
+
+                onMounted(loadItems);
+                return {
+                    items, filteredItems, keyword, filterSubject, subjects,
+                    showModal, isEditing, form, openAdd, openEdit, saveItem,
+                    handleImage, removeImage,
+                    showConfirm, confirmDelete, doDelete,
+                    fmtTime, loading,
+                    analyzingId, startAnalysis
+                };
+            },
+            template: `
+                <div class="errorbook-page">
+                    <div class="header">
+                        <h3>📝 我的错题本</h3>
+                        <button class="btn btn-primary" @click="openAdd">+ 添加错题</button>
+                    </div>
+
+                    <!-- 搜索筛选 -->
+                    <div class="filters">
+                        <input v-model="keyword" placeholder="🔍 搜索题目或答案..." style="flex:1;max-width:300px;" />
+                        <select v-model="filterSubject">
+                            <option value="">全部科目</option>
+                            <option v-for="s in subjects" :value="s">{{ s }}</option>
+                        </select>
+                        <span style="color:#64748b;font-size:0.8rem;display:flex;align-items:center;">
+                            共 {{ filteredItems.length }} 条
+                        </span>
+                    </div>
+
+                    <!-- 列表 -->
+                    <div class="errorbook-list">
+                        <div v-if="filteredItems.length===0" class="empty-state">
+                            <div class="icon">📭</div>
+                            <p v-if="items.length===0">还没有错题，点击右上角「添加错题」开始记录</p>
+                            <p v-else>没有匹配的错题</p>
+                        </div>
+                        <div v-for="item in filteredItems" :key="item.id" class="eb-card">
+                            <img v-if="item.image_url" :src="item.image_url" class="eb-img" />
+                            <div v-else class="eb-img">📝</div>
+                            <div class="eb-content">
+                                <div class="eb-question">{{ item.question }}</div>
+                                <div class="eb-answer" v-if="item.answer">{{ item.answer }}</div>
+                                <div class="eb-meta">
+                                    <span v-if="item.subject" class="tag">{{ item.subject }}</span>
+                                    <span>{{ fmtTime(item.updated_at) }}</span>
+                                </div>
+                            </div>
+                            <div class="eb-actions">
+                                <button class="btn btn-outline btn-sm" @click="startAnalysis(item.id)" :disabled="analyzingId===item.id">
+                                    {{ analyzingId===item.id ? '⏳ 分析中...' : '🤖 AI分析' }}
+                                </button>
+                                <button class="btn btn-outline btn-sm" @click="openEdit(item)">编辑</button>
+                                <button class="btn btn-danger btn-sm" @click="confirmDelete(item.id)">删除</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 添加/编辑弹窗 -->
+                    <div v-if="showModal" class="modal-overlay" @click.self="showModal=false">
+                        <div class="modal">
+                            <h4>{{ isEditing ? '编辑错题' : '添加错题' }}</h4>
+                            <label>题目内容 *</label>
+                            <input v-model="form.question" placeholder="输入题目内容" />
+
+                            <label>正确答案 / 笔记</label>
+                            <textarea v-model="form.answer" placeholder="记录正确答案或解题笔记..."></textarea>
+
+                            <label>科目标签</label>
+                            <input v-model="form.subject" placeholder="如：数学、英语、物理..." />
+
+                            <label>配图</label>
+                            <div class="img-upload-area" @click="$refs.ebFileInput.click()" v-if="!form.imageSrc">
+                                📷 点击上传图片
+                            </div>
+                            <input ref="ebFileInput" type="file" accept="image/*" @change="handleImage" style="display:none" />
+                            <img v-if="form.imageSrc" :src="form.imageSrc" class="img-preview" />
+                            <span v-if="form.imageSrc" class="delete-img" @click="removeImage">🗑 删除图片</span>
+
+                            <div class="modal-actions">
+                                <button class="btn btn-outline" @click="showModal=false">取消</button>
+                                <button class="btn btn-primary" @click="saveItem">{{ isEditing ? '保存' : '添加' }}</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 删除确认弹窗 -->
+                    <div v-if="showConfirm" class="confirm-overlay" @click.self="showConfirm=false">
+                        <div class="confirm-box">
+                            <p>确定要删除这条错题吗？此操作不可撤销。</p>
+                            <div class="actions">
+                                <button class="btn btn-outline" @click="showConfirm=false">取消</button>
+                                <button class="btn btn-danger" @click="doDelete">确认删除</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `
+        };
+
+        // --- 错题 AI 分析页 ---
+        const AnalysisPage = {
+            setup() {
+                const route = useRoute();
+                const router = useRouter();
+                const item = ref(null);
+                const analysis = ref(null);
+                const loading = ref(true);
+                const analyzing = ref(false);
+                const error = ref('');
+
+                async function loadAnalysis() {
+                    loading.value = true;
+                    error.value = '';
+                    const itemId = route.params.id;
+                    try {
+                        const res = await apiFetch(`/api/errorbook/${itemId}/analysis`);
+                        if (res.status === 401) { clearLogin(); router.push('/login'); return; }
+                        if (res.status === 404) { error.value = '错题不存在'; return; }
+                        const data = await res.json();
+                        if (data.success) {
+                            item.value = data.item;
+                            analysis.value = data.analysis;
+                        } else {
+                            error.value = data.error || '加载失败';
+                        }
+                    } catch (e) {
+                        error.value = '网络错误，请确认后端已启动';
+                    } finally {
+                        loading.value = false;
+                    }
+                }
+
+                async function triggerAnalysis() {
+                    const itemId = route.params.id;
+                    analyzing.value = true;
+                    try {
+                        const res = await apiFetch(`/api/errorbook/${itemId}/analyze`, { method: 'POST' });
+                        const data = await res.json();
+                        if (data.success) {
+                            analysis.value = data.analysis;
+                        } else {
+                            alert(data.error || '分析失败');
+                        }
+                    } catch (e) {
+                        alert('请求失败');
+                    } finally {
+                        analyzing.value = false;
+                    }
+                }
+
+                async function removeAnalysis() {
+                    if (!confirm('确定要删除这份分析报告吗？')) return;
+                    const itemId = route.params.id;
+                    try {
+                        const res = await apiFetch(`/api/errorbook/${itemId}/analysis`, { method: 'DELETE' });
+                        const data = await res.json();
+                        if (data.success) {
+                            analysis.value = null;
+                        }
+                    } catch (e) {
+                        alert('删除失败');
+                    }
+                }
+
+                function fmtTime(t) {
+                    if (!t) return '';
+                    return t.replace('T', ' ').substring(0, 16);
+                }
+
+                // 导出分析报告为 Markdown 文件
+                function exportReport() {
+                    if (!item.value || !analysis.value) {
+                        alert('没有分析报告可导出');
+                        return;
+                    }
+                    let text = `# 📊 错题分析报告\n\n`;
+                    text += `**题目**：${item.value.question}\n`;
+                    text += `**答案**：${item.value.answer || '（未填写）'}\n`;
+                    if (item.value.subject) text += `**科目**：${item.value.subject}\n`;
+                    text += `\n---\n\n`;
+                    text += analysis.value.text;
+                    text += `\n\n---\n\n*分析时间：${analysis.value.created_at}*`;
+
+                    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    const safeTitle = (item.value.question || 'report').substring(0, 20).replace(/[\\s/]/g, '_');
+                    a.download = `错题分析_${safeTitle}.md`;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                }
+
+                onMounted(loadAnalysis);
+                return { item, analysis, loading, analyzing, error, triggerAnalysis, removeAnalysis, exportReport, fmtTime };
+            },
+            template: `
+                <div class="analysis-page">
+                    <!-- 顶部栏 -->
+                    <div class="top-bar">
+                        <button class="btn btn-outline btn-sm" @click="$router.push('/errorbook')">← 返回错题本</button>
+                        <h3>📊 AI 错题分析</h3>
+                    </div>
+
+                    <!-- 加载中 -->
+                    <div v-if="loading" class="loading-state">
+                        <span class="spin">⏳</span> 加载中...
+                    </div>
+
+                    <!-- 错误 -->
+                    <div v-else-if="error" style="text-align:center;padding:40px;color:#f87171;">
+                        <p>{{ error }}</p>
+                        <button class="btn btn-outline btn-sm" style="margin-top:12px;" @click="$router.push('/errorbook')">返回错题本</button>
+                    </div>
+
+                    <!-- 正常内容 -->
+                    <template v-else-if="item">
+                        <!-- 错题详情卡片 -->
+                        <div class="item-card">
+                            <img v-if="item.image_url" :src="item.image_url" class="item-img" />
+                            <div v-else class="item-img">📝</div>
+                            <div class="item-info">
+                                <div class="label">题目</div>
+                                <div class="value">{{ item.question }}</div>
+                                <div class="label">答案 / 笔记</div>
+                                <div class="value">{{ item.answer || '（未填写）' }}</div>
+                                <span v-if="item.subject" class="tag">{{ item.subject }}</span>
+                            </div>
+                        </div>
+
+                        <!-- 分析报告 -->
+                        <div class="report-section">
+                            <h4>🤖 AI 分析报告</h4>
+
+                            <div v-if="analysis" class="report-card" v-html="analysis.text.replace(/\\n/g,'<br>')">
+                            </div>
+                            <div v-else class="empty-analysis">
+                                <div class="icon">🔍</div>
+                                <p>此错题尚未进行 AI 分析</p>
+                                <p style="font-size:0.85rem;margin-top:4px;">点击下方按钮，让 AI 帮你分析这道错题</p>
+                            </div>
+                        </div>
+
+                        <!-- 操作按钮 -->
+                        <div class="actions-bar">
+                            <button class="btn btn-primary" @click="triggerAnalysis" :disabled="analyzing">
+                                {{ analyzing ? '⏳ 分析中...' : (analysis ? '🔄 重新分析' : '🤖 开始分析') }}
+                            </button>
+                            <button v-if="analysis" class="btn btn-outline btn-sm" @click="exportReport">📥 导出报告</button>
+                            <button v-if="analysis" class="btn btn-danger btn-sm" @click="removeAnalysis">删除报告</button>
+                            <span style="flex:1;"></span>
+                            <span v-if="analysis" style="color:#64748b;font-size:0.8rem;display:flex;align-items:center;">
+                                分析时间：{{ fmtTime(analysis.created_at) }}
+                            </span>
+                        </div>
+                    </template>
+                </div>
+            `
+        };
+
+        // --- 分析报告列表页 ---
+        const AnalysisListPage = {
+            setup() {
+                const router = useRouter();
+                const items = ref([]);
+                const loading = ref(true);
+
+                async function loadAnalyses() {
+                    loading.value = true;
+                    try {
+                        const res = await apiFetch('/api/analyses');
+                        if (res.status === 401) { clearLogin(); router.push('/login'); return; }
+                        const data = await res.json();
+                        if (data.success) items.value = data.items;
+                    } catch (e) { /* 静默 */ }
+                    finally { loading.value = false; }
+                }
+
+                function goDetail(errorbookId) {
+                    router.push(`/analysis/${errorbookId}`);
+                }
+
+                function fmtTime(t) {
+                    if (!t) return '';
+                    return t.replace('T', ' ').substring(0, 16);
+                }
+
+                function previewText(text) {
+                    if (!text) return '';
+                    // 取前 80 个字符做摘要，跳过 Markdown 标记
+                    return text.replace(/[#*>`]/g, '').substring(0, 80) + (text.length > 80 ? '...' : '');
+                }
+
+                onMounted(loadAnalyses);
+                return { items, loading, goDetail, fmtTime, previewText };
+            },
+            template: `
+                <div class="analyses-list-page">
+                    <h3>📊 分析报告列表</h3>
+                    <div v-if="loading" style="text-align:center;padding:60px;color:#94a3b8;">
+                        <span class="spin">⏳</span> 加载中...
+                    </div>
+                    <div v-else-if="items.length===0" style="text-align:center;padding:60px;color:#64748b;">
+                        <div style="font-size:3rem;margin-bottom:12px;">📭</div>
+                        <p>暂无分析报告</p>
+                        <p style="font-size:0.85rem;margin-top:4px;">在错题本中点击「🤖 AI分析」即可生成报告</p>
+                    </div>
+                    <div v-else v-for="item in items" :key="item.id" class="analysis-card" @click="goDetail(item.errorbook_id)">
+                        <div class="thumb">
+                            <img v-if="item.image_url" :src="item.image_url" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" />
+                            <span v-else>📝</span>
+                        </div>
+                        <div class="info">
+                            <div class="title">{{ item.question || '（无题目）' }}</div>
+                            <div class="preview">{{ previewText(item.analysis_text) }}</div>
+                            <div class="meta">
+                                <span v-if="item.subject" class="tag">{{ item.subject }}</span>
+                                <span>{{ fmtTime(item.created_at) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `
+        };
+
+        // --- 知识库占位页 ---
+        const KnowledgePage = {
+            template: `
+                <div style="padding:40px;text-align:center;color:#64748b;">
+                    <div style="font-size:3rem;margin-bottom:16px;">📚</div>
+                    <h3>知识库 - 开发中</h3>
+                    <p style="margin-top:8px;">此功能留给你来扩展！</p>
+                </div>
+            `
+        };
+
+        // ==================== 路由 ====================
+        const routes = [
+            { path: '/', component: WelcomePage },
+            { path: '/login', component: AuthPage },
+            {
+                path: '/',
+                component: MainLayout,
+                children: [
+                    { path: '/chat', component: ChatPage },
+                    { path: '/image', component: ImagePage },
+                    { path: '/errorbook', component: ErrorbookPage },
+                    { path: '/analyses', component: AnalysisListPage },
+                    { path: '/analysis/:id', component: AnalysisPage },
+                    { path: '/knowledge', component: KnowledgePage },
+                    { path: '/pytest', component: Pytest },
+                ]
+            },
+        ];
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes,
+        });
+
+        // ==================== 导航守卫：未登录拦截 ====================
+        const protectedRoutes = ['/chat', '/image', '/errorbook', '/analyses', '/knowledge','/pytest'];
+        router.beforeEach((to, from) => {
+            const needsAuth = protectedRoutes.includes(to.path) || to.path.startsWith('/analysis/');
+            if (needsAuth && !store.isLoggedIn()) {
+                return '/login';
+            }
+        });
+
+        // ==================== 启动 ====================
+        const app = createApp({});
+        app.use(router);
+        app.mount('#app');
+    </script>
+</body>
+</html>
