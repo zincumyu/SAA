@@ -46,14 +46,14 @@ python run.py
 
 | 接口 | 方法 | 说明 | 需登录 |
 |---|---|---|---|
-| `/api/register` | POST | 注册 | ❌ |
-| `/api/login` | POST | 登录，返回 token | ❌ |
+| `/api/register` | POST | 注册 | ✅ |
+| `/api/login` | POST | 登录，返回 token | ✅ |
 
 ### AI
 
 | 接口 | 方法 | 说明 | 需登录 |
 |---|---|---|---|
-| `/api/chat` | POST | AI 对话（已接入 DeepSeek） | ❌ |
+| `/api/chat` | POST | AI 对话（已接入 DeepSeek） | ✅ |
 | `/api/image-recognize` | POST | 图片识别（骨架） | ❌ |
 
 ### 错题本

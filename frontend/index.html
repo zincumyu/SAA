@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8" />
@@ -203,8 +204,134 @@
         .analyses-list-page .analysis-card .info .preview { color: #94a3b8; font-size: 0.8rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .analyses-list-page .analysis-card .info .meta { display: flex; gap: 12px; margin-top: 6px; font-size: 0.75rem; color: #64748b; }
         .analyses-list-page .analysis-card .info .meta .tag { background: #334155; padding: 2px 8px; border-radius: 4px; }
+        /* ========== python测试页 ========== */
+        .flat-label {font-size: 14px; color: #333; padding-left: 8px; border-left: 3px solid #1677ff; line-height: 1.2; }
+        .flat-time { font-weight: 500; color: #1677ff; margin-left: 4px; }    
+        /* ========== LED字体 ========== */
+/* ========== 紧凑型HMI组件 ========== */
+    :root {--cyan: #00e5ff;--line: rgba(128, 128, 128, 0.35);}
+    .dark-mode { --text-main: #e0e0e0; --text-sub: #888; }
+    .compact-hmi {display: inline-flex;align-items: center;
+    gap: 8px;
+    padding-left: 8px;
+    border-left: 2px solid var(--cyan);
+    font-family: "JetBrains Mono", monospace;
+    color: var(--text-main, #1a1a1a);
+    }
+
+    .compact-hmi .label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-sub, #666);
+    text-transform: uppercase;
+    letter-spacing: 0.5px; /* 稍微收紧 */
+    }
+
+    .compact-hmi .value {
+    font-size: 15px; /* 稍微缩小一号 */
+    font-weight: 600;
+    color: var(--cyan);
+    text-shadow: 0 0 5px rgba(0, 229, 255, 0.5);
+    }
+
+    /* 微型LED */
+    .led-mini {
+    width: 5px;
+    height: 5px;
+    background: #4caf50;
+    border-radius: 50%;
+    box-shadow: 0 0 6px #4caf50;
+    animation: pulse 2s infinite;
+    }
+    /* 脉冲动画 */
+    .btn-text {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: #00e5ff;
+    background: none;
+    border: none;
+    padding: 6px 4px;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s;
+    }
+    /* 底部那条线 */
+    .btn-text::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 1px;
+    background: #00e5ff;
+    box-shadow: 0 0 4px #00e5ff;
+    transition: height 0.2s, box-shadow 0.2s;
+    }
+    .btn-text:hover {
+    color: #fff;
+    }
+    .btn-text:hover::after {
+    height: 2px;
+    box-shadow: 0 0 8px #00e5ff;
+    }
+    .btn-text:active {
+    color: #000;
+    }
+    .btn-text:active::after {
+    background: #fff;
+    box-shadow: none;
+    }
+    /* =====关于页UI==== */
+    :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --gray: #666;
+    --light-gray: #eee;
+    --accent: #00e5ff; /* 工业蓝 */
+    --space: 24px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    #site-about body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        line-height: 1.6;
+        font-size: 16px;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: var(--space) calc(var(--space) + 80x) var(--space) calc(var(--space) + 80px);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* 头部 */
+    #site-about header {
+        border-bottom: 3px solid var(--fg);
+        padding-bottom: 12px;
+        margin-bottom: calc(var(--space) * 2);
+    }
+
+
+    #site-about main { display: flex; flex-direction: column; gap: calc(var(--space) * 1.5); }
+
+    #site-about section { border-left: 3px solid var(--light-gray); padding-left: var(--space); }
+    
+    #site-about ul { list-style: none; }
+    #site-about li { padding: 4px 0; }
+    #site-about li::before { content: "— "; color: var(--gray); }
+
+    /* 链接 */
+    #site-about a { color: var(--accent); text-decoration: none; }
+    #site-about a:hover { text-decoration: underline; }
+
+    /* 响应式 */
+    @media (max-width: 600px) {
+        body { padding: 16px; }
+        h1 { font-size: 1.6rem; }
+        section { padding-left: 12px; }
+    }
     </style>
-</head>
+<head>
 <body>
     <div id="app">
         <router-view></router-view>
@@ -400,6 +527,7 @@
                         <div class="menu-item" :class="{active:$route.path==='/errorbook'}" @click="$router.push('/errorbook')">📝 错题本</div>
                         <div class="menu-item" :class="{active:$route.path==='/analyses'}" @click="$router.push('/analyses')">📊 分析报告</div>
                         <div class="menu-item" :class="{active:$route.path==='/pytest'}" @click="$router.push('/pytest')">📝 python测试</div>
+                        <div class="menu-item" :class="{active:$route.path==='/about'}" @click="$router.push('/about')">ℹ️ 关于</div>
 
                         <!-- 历史记录 -->
                         <div class="session-section">
@@ -436,6 +564,7 @@
         const Pytest = {
             setup() {
                 const result = ref('没有覆写py01');
+                const g_time = ref("error time");
                 //调用api/re_python接口
                 //赋值给data
                 async function loadPlans() {
@@ -449,7 +578,17 @@
                     result.value = data.item || '未收到结果';
                     // if (data.success) result.value = data.items;
                 }
-                return {loadPlans,result };
+                async function updateTime() {
+                    const res = await apiFetch('/api/get_time',   
+                    {method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ code: "test" })
+                });
+                //写入数据
+                    const time = await res.json();
+                    g_time.value = time.item || 'errortime';
+                }
+                return {loadPlans, updateTime, result, g_time};
             },
             template: `
                 <div style="padding:24px;">
@@ -457,6 +596,20 @@
                     <button @click="loadPlans">加载数据</button>
                     <div v-if="result" class="result">{{ result }}</div>
                     <h3>html测试输入02</h3>
+                    <div>LED字体测试</div>
+                    <div style="padding: 5px; display: flex; gap: 30px;">
+                    <button class="btn-text" @click="updateTime">更新时间</button>
+                    </div>
+                    <h3></h3>
+                    <div class="compact-hmi">
+                        <span class="led-mini"></span>
+                        <span class="label">T</span>
+                        <span class="value">{{ g_time}}</span>
+                    </div>
+                    </div>
+                
+
+
                 </div>
             `
         };
@@ -470,10 +623,11 @@
                 const localSessionId = ref(null);  // 当前会话 ID，纯本地管理
 
                 const suggestions = [
-                    '用费曼学习法解释牛顿第二定律',
-                    '帮我分析这道微积分题的错误原因',
+                    '李白的诗歌都有那些特点',
+                    '1+1=?',
                     '如何设计一个高效的学习计划？',
-                    '用比喻的方式解释机器学习中的过拟合'
+                    '用比喻的方式解释机器学习中的过拟合',
+                    "物理学中，什么是热力学第二定律？"
                 ];
 
                 // ======== 工具函数 ========
@@ -1233,14 +1387,45 @@
             `
         };
 
-        // --- 知识库占位页 ---
-        const KnowledgePage = {
+
+        // --- 关于页 --
+        const AboutPage = {
             template: `
-                <div style="padding:40px;text-align:center;color:#64748b;">
-                    <div style="font-size:3rem;margin-bottom:16px;">📚</div>
-                    <h3>知识库 - 开发中</h3>
-                    <p style="margin-top:8px;">此功能留给你来扩展！</p>
-                </div>
+            <div id="site-about" style="padding:28px;">
+                    <header>
+                        <h1>[校园人工智能助手/SAA]</h1>
+                        <p>独立开发项目</p>
+                    </header>
+
+                    <main>
+
+                        <section>
+                            <h2>技术栈</h2>
+                            <ul>
+                                <li>前端：Vue 3</li>
+                                <li>后端：Python / FastAPI</li>
+                                <li>数据库：SQLite</li>
+                                <li>其他：Git / OpenAI </li>
+                            </ul>
+                        </section>
+
+                        <section>
+                            <h2>真-关于项目</h2>
+                            <ul>
+                                <li>本项目为个人独立开发，旨在提供一个校园人工智能助手,帮助学生更好地学习和管理错题。</li>
+                                <li>项目使用了AI接口,先暂定使用deepseek,千问的qwen-vl-max用于智能问答和错题分析。</li>
+                                <li>本人菜,所以前端采用Vue框架,后端使用FastAPI。</li>
+                                <li>项目仍在持续开发中，欢迎大家提出建议和反馈!</li>
+                            </ul>
+                        </section>
+                        <section>
+                            <h2>项目地址</h2>
+                            <p>GitHub: <a href="https://github.com/zincum/SAA">SAA</a></p>                            
+                            
+
+                        </section>
+                    </main>
+            </div>
             `
         };
 
@@ -1257,8 +1442,8 @@
                     { path: '/errorbook', component: ErrorbookPage },
                     { path: '/analyses', component: AnalysisListPage },
                     { path: '/analysis/:id', component: AnalysisPage },
-                    { path: '/knowledge', component: KnowledgePage },
                     { path: '/pytest', component: Pytest },
+                    { path: '/about', component: AboutPage }
                 ]
             },
         ];
@@ -1282,5 +1467,6 @@
         app.use(router);
         app.mount('#app');
     </script>
+
 </body>
 </html>

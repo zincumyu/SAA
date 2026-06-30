@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from io import BytesIO
 from pydantic import BaseModel
 from pathlib import Path
-
+import time
 # 导入数据库模块
 from backend.database import (
     create_user, login_user, get_user_by_token,
@@ -92,6 +92,7 @@ class ChatSaveRequest(BaseModel):
 class PythonRequest(BaseModel):
     code: str
 
+
 # #数据处理返回
 # @app.get("/api/pytest")
 # async def list_plan(user: dict = Depends(get_current_user)):
@@ -108,10 +109,15 @@ class PythonRequest(BaseModel):
 
 
 # ==================== 用户 API ====================
-#5527
+#5527python_test
 @app.post("/api/re_python")
 async def re_python(data: PythonRequest):
     notice =f"python 运行成功,测试码111"
+    return{"success": True, "item": notice}
+
+@app.post("/api/get_time")
+async def get_time(data: PythonRequest):
+    notice =str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) )
     return{"success": True, "item": notice}
 
 @app.post("/api/register")
