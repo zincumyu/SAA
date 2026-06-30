@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from io import BytesIO
 from pydantic import BaseModel
 from pathlib import Path
+from typing import Optional
 import time
 # 导入数据库模块
 from backend.database import (
@@ -81,12 +82,9 @@ class ErrorbookAddRequest(BaseModel):
 class ErrorbookUpdateRequest(BaseModel):
     question: str = None
     answer: str = None
-    image_base64: str = None   # 空字符串 = 不变，"__DELETE__" = 删除图片
+    image_base64: str = None
     subject: str = None
     keep_image: bool = True
-
-class ChatSaveRequest(BaseModel):
-    messages: list[dict]   # [{"role":"user","content":"..."}, {"role":"assistant","content":"..."}]
 
 # pytest
 class PythonRequest(BaseModel):
@@ -173,7 +171,7 @@ async def chat(data: ChatRequest):
     response = client.chat.completions.create(
         model="deepseek-v4-pro",
         messages=[
-            {"role": "system", "content": "你是ASS系统助教机器人,请简洁回答高中学生的问题。"},
+            {"role": "system", "content": "你是ASS系统助教机器人,请简洁回答高中学生的问题。关于化学式、数学公式等，请使用HTML标签：下标用<sub>、上标用<sup>。例如：H<sub>2</sub>O、Fe<sup>3+</sup>、SO<sub>4</sub><sup>2-</sup>。"},
             {"role": "user", "content": data.message},
         ]
     )
@@ -322,7 +320,7 @@ def analyze_errorbook_item(item: dict) -> str:
         "role": "user",
         "content": [
         {"image": f"{img_path}"},
-        {"text": f"快速请分析这道错题：\n题目：{item['question']}\n答案：{item.get('answer','')}\n科目：{item.get('subject','')}"}]
+        {"text": f",你是高中老师,请简洁分析学生错题。：\n题目：{item['question']}\n答案：{item.get('answer','')}\n科目：{item.get('subject','')}"}]
     }]
 
     response = dashscope.MultiModalConversation.call(
@@ -432,9 +430,9 @@ async def list_all_analyses(user: dict = Depends(get_current_user)):
 # ==================== 对话会话保存与导出 API ====================
 
 class ChatSaveRequest(BaseModel):
-    session_id: int = 0       # 0 = 新建会话
-    messages: list[dict]      # [{"role":"user","content":"..."}, ...]
-    title: str = None         # 可选，首次保存时自动从首条消息截取
+    session_id: int = 0
+    messages: list[dict]
+    title: Optional[str] = None
 
 @app.post("/api/chat/save")
 async def save_chat(data: ChatSaveRequest, user: dict = Depends(get_current_user)):

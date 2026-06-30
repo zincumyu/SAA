@@ -103,6 +103,9 @@
         .message .bubble strong { color: #e2e8f0; }
         .message.user .bubble strong { color: #fff; }
         .message .bubble blockquote { border-left: 3px solid #6366f1; padding-left: 12px; color: #94a3b8; margin: 8px 0; }
+        .message .bubble sub, .message .bubble sup { font-size: 0.78em; }
+        .message .bubble sub { vertical-align: sub; }
+        .message .bubble sup { vertical-align: super; }
 
         .chat-input-area { padding: 14px 24px; border-top: 1px solid #1e293b; display: flex; gap: 10px; align-items: flex-end; background: #0f172a; flex-shrink: 0; }
         .chat-input-area .input-wrapper { flex: 1; position: relative; }
@@ -340,6 +343,57 @@
     <script>
         const { createApp, ref, reactive, onMounted, nextTick, watch } = Vue;
         const { createRouter, createWebHashHistory, useRouter, useRoute } = VueRouter;
+
+        // ==================== 全局工具函数 ====================
+
+        function renderMarkdown(text) {
+            if (!text) return '';
+            let html = text;
+
+            // 代码块先保护
+            const codeBlocks = [];
+            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+                codeBlocks.push('<pre><code>' + code + '</code></pre>');
+                return '\x00CODE' + (codeBlocks.length - 1) + '\x00';
+            });
+            const inlineCodes = [];
+            html = html.replace(/`([^`]+)`/g, (_, code) => {
+                inlineCodes.push('<code>' + code + '</code>');
+                return '\x01ICODE' + (inlineCodes.length - 1) + '\x01';
+            });
+
+            // 解码 AI 模型可能输出的 HTML 实体
+            html = html.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
+            // 粗体
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            // 标题
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            // 引用
+            html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+            // 无序列表
+            html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+            html = html.replace(/(<li>[\s\S]*?<\/li>)/g, m => '<ul>' + m + '</ul>');
+            // 有序列表
+            html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+            // 段落处理
+            const parts = html.split(/\n\n+/);
+            html = parts.map(p => {
+                p = p.trim();
+                if (!p) return '';
+                if (/^<(h[23]|ul|ol|pre|blockquote|li)/.test(p)) return p;
+                p = p.replace(/\n/g, '<br>');
+                return '<p>' + p + '</p>';
+            }).join('');
+
+            // 还原代码块
+            html = html.replace(/\x00CODE(\d+)\x00/g, (_, i) => codeBlocks[i]);
+            html = html.replace(/\x01ICODE(\d+)\x01/g, (_, i) => inlineCodes[i]);
+
+            return html;
+        }
 
         // ==================== 全局状态 ====================
         const store = reactive({
@@ -631,32 +685,6 @@
                 ];
 
                 // ======== 工具函数 ========
-
-                function renderMarkdown(text) {
-                    if (!text) return '';
-                    let html = text;
-                    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-                    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-                    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-                    html = html.replace(/^### (.+)$/gm, '<h3 style="margin:12px 0 6px;font-size:1rem;color:#c4b5fd;">$1</h3>');
-                    html = html.replace(/^## (.+)$/gm, '<h2 style="margin:14px 0 8px;font-size:1.1rem;color:#e2e8f0;">$1</h2>');
-                    html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
-                    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-                    html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
-                    html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-                    html = html.replace(/\n\n/g, '</p><p>');
-                    html = '<p>' + html + '</p>';
-                    html = html.replace(/<p><\/p>/g, '');
-                    html = html.replace(/<p><h/g, '<h');
-                    html = html.replace(/<\/h([23])><\/p>/g, '</h$1>');
-                    html = html.replace(/<p><ul>/g, '<ul>');
-                    html = html.replace(/<\/ul><\/p>/g, '</ul>');
-                    html = html.replace(/<p><blockquote>/g, '<blockquote>');
-                    html = html.replace(/<\/blockquote><\/p>/g, '</blockquote>');
-                    html = html.replace(/<p><pre>/g, '<pre>');
-                    html = html.replace(/<\/pre><\/p>/g, '</pre>');
-                    return html;
-                }
 
                 async function scrollToBottom() {
                     await nextTick();
@@ -1167,155 +1195,106 @@
             setup() {
                 const route = useRoute();
                 const router = useRouter();
-                const item = ref(null);
-                const analysis = ref(null);
+                const item = ref(null);       // 错题数据
+                const analysis = ref(null);   // 分析结果 {id, text, created_at}
                 const loading = ref(true);
                 const analyzing = ref(false);
                 const error = ref('');
 
+                // ── 加载分析数据 ──
                 async function loadAnalysis() {
                     loading.value = true;
                     error.value = '';
-                    const itemId = route.params.id;
                     try {
-                        const res = await apiFetch(`/api/errorbook/${itemId}/analysis`);
+                        const res = await apiFetch('/api/errorbook/' + route.params.id + '/analysis');
                         if (res.status === 401) { clearLogin(); router.push('/login'); return; }
                         if (res.status === 404) { error.value = '错题不存在'; return; }
                         const data = await res.json();
-                        if (data.success) {
-                            item.value = data.item;
-                            analysis.value = data.analysis;
-                        } else {
-                            error.value = data.error || '加载失败';
-                        }
-                    } catch (e) {
-                        error.value = '网络错误，请确认后端已启动';
-                    } finally {
-                        loading.value = false;
-                    }
+                        if (data.success) { item.value = data.item; analysis.value = data.analysis; }
+                        else { error.value = data.error || '加载失败'; }
+                    } catch (e) { error.value = '网络错误'; }
+                    finally { loading.value = false; }
                 }
 
+                // ── 触发 AI 分析 ──
                 async function triggerAnalysis() {
-                    const itemId = route.params.id;
                     analyzing.value = true;
                     try {
-                        const res = await apiFetch(`/api/errorbook/${itemId}/analyze`, { method: 'POST' });
+                        const res = await apiFetch('/api/errorbook/' + route.params.id + '/analyze', { method: 'POST' });
                         const data = await res.json();
-                        if (data.success) {
-                            analysis.value = data.analysis;
-                        } else {
-                            alert(data.error || '分析失败');
-                        }
-                    } catch (e) {
-                        alert('请求失败');
-                    } finally {
-                        analyzing.value = false;
-                    }
+                        if (data.success) analysis.value = data.analysis;
+                        else alert(data.error || '分析失败');
+                    } catch (e) { alert('请求失败'); }
+                    finally { analyzing.value = false; }
                 }
 
+                // ── 删除分析 ──
                 async function removeAnalysis() {
-                    if (!confirm('确定要删除这份分析报告吗？')) return;
-                    const itemId = route.params.id;
-                    try {
-                        const res = await apiFetch(`/api/errorbook/${itemId}/analysis`, { method: 'DELETE' });
-                        const data = await res.json();
-                        if (data.success) {
-                            analysis.value = null;
-                        }
-                    } catch (e) {
-                        alert('删除失败');
-                    }
+                    if (!confirm('确定删除？')) return;
+                    await apiFetch('/api/errorbook/' + route.params.id + '/analysis', { method: 'DELETE' });
+                    analysis.value = null;
                 }
 
-                function fmtTime(t) {
-                    if (!t) return '';
-                    return t.replace('T', ' ').substring(0, 16);
-                }
-
-                // 导出分析报告为 Markdown 文件
+                // ── 导出 Markdown ──
                 function exportReport() {
-                    if (!item.value || !analysis.value) {
-                        alert('没有分析报告可导出');
-                        return;
-                    }
-                    let text = `# 📊 错题分析报告\n\n`;
-                    text += `**题目**：${item.value.question}\n`;
-                    text += `**答案**：${item.value.answer || '（未填写）'}\n`;
-                    if (item.value.subject) text += `**科目**：${item.value.subject}\n`;
-                    text += `\n---\n\n`;
-                    text += analysis.value.text;
-                    text += `\n\n---\n\n*分析时间：${analysis.value.created_at}*`;
-
-                    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+                    if (!analysis.value) { alert('无内容可导出'); return; }
+                    const text = `# AI 错题分析\n\n**题目**：${item.value.question}\n\n---\n\n${analysis.value.text}`;
                     const a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    const safeTitle = (item.value.question || 'report').substring(0, 20).replace(/[\\s/]/g, '_');
-                    a.download = `错题分析_${safeTitle}.md`;
+                    a.href = URL.createObjectURL(new Blob([text],{type:'text/markdown'}));
+                    a.download = '错题分析.md';
                     a.click();
-                    URL.revokeObjectURL(a.href);
                 }
+
+                // ── 在此区域添加你自己的文本渲染函数 ──
+                // function customRender(text) {
+                //     // 例如：text.replace(/\n/g, '<br>').replace(/`([^`]+)`/g, '<code>$1</code>');
+                //     return text;
+                // }
 
                 onMounted(loadAnalysis);
-                return { item, analysis, loading, analyzing, error, triggerAnalysis, removeAnalysis, exportReport, fmtTime };
+                return { item, analysis, loading, analyzing, error, triggerAnalysis, removeAnalysis, exportReport };
             },
             template: `
                 <div class="analysis-page">
-                    <!-- 顶部栏 -->
                     <div class="top-bar">
-                        <button class="btn btn-outline btn-sm" @click="$router.push('/errorbook')">← 返回错题本</button>
+                        <button class="btn btn-outline btn-sm" @click="$router.push('/errorbook')">← 返回</button>
                         <h3>📊 AI 错题分析</h3>
                     </div>
-
-                    <!-- 加载中 -->
-                    <div v-if="loading" class="loading-state">
-                        <span class="spin">⏳</span> 加载中...
-                    </div>
-
-                    <!-- 错误 -->
-                    <div v-else-if="error" style="text-align:center;padding:40px;color:#f87171;">
-                        <p>{{ error }}</p>
-                        <button class="btn btn-outline btn-sm" style="margin-top:12px;" @click="$router.push('/errorbook')">返回错题本</button>
-                    </div>
-
-                    <!-- 正常内容 -->
+                    <div v-if="loading" style="text-align:center;padding:60px;color:#94a3b8;">加载中...</div>
+                    <div v-else-if="error" style="text-align:center;padding:60px;color:#f87171;">{{ error }}</div>
                     <template v-else-if="item">
-                        <!-- 错题详情卡片 -->
+                        <!-- 错题信息 -->
                         <div class="item-card">
                             <img v-if="item.image_url" :src="item.image_url" class="item-img" />
                             <div v-else class="item-img">📝</div>
                             <div class="item-info">
                                 <div class="label">题目</div>
                                 <div class="value">{{ item.question }}</div>
-                                <div class="label">答案 / 笔记</div>
-                                <div class="value">{{ item.answer || '（未填写）' }}</div>
+                                <div class="label">答案</div>
+                                <div class="value">{{ item.answer || '（无）' }}</div>
                                 <span v-if="item.subject" class="tag">{{ item.subject }}</span>
                             </div>
                         </div>
 
-                        <!-- 分析报告 -->
+                        <!-- 分析报告：纯文本显示，行高留白便于阅读，日后可自己替换渲染方式 -->
                         <div class="report-section">
                             <h4>🤖 AI 分析报告</h4>
-
-                            <div v-if="analysis" class="report-card" v-html="analysis.text.replace(/\\n/g,'<br>')">
+                            <div v-if="analysis" class="report-card" style="white-space:pre-wrap;word-break:break-word;font-size:0.95rem;">
+                                {{ analysis.text }}
                             </div>
                             <div v-else class="empty-analysis">
                                 <div class="icon">🔍</div>
-                                <p>此错题尚未进行 AI 分析</p>
-                                <p style="font-size:0.85rem;margin-top:4px;">点击下方按钮，让 AI 帮你分析这道错题</p>
+                                <p>尚未分析</p>
                             </div>
                         </div>
 
-                        <!-- 操作按钮 -->
+                        <!-- 操作 -->
                         <div class="actions-bar">
                             <button class="btn btn-primary" @click="triggerAnalysis" :disabled="analyzing">
-                                {{ analyzing ? '⏳ 分析中...' : (analysis ? '🔄 重新分析' : '🤖 开始分析') }}
+                                {{ analyzing ? '分析中...' : (analysis ? '重新分析' : '开始分析') }}
                             </button>
-                            <button v-if="analysis" class="btn btn-outline btn-sm" @click="exportReport">📥 导出报告</button>
-                            <button v-if="analysis" class="btn btn-danger btn-sm" @click="removeAnalysis">删除报告</button>
-                            <span style="flex:1;"></span>
-                            <span v-if="analysis" style="color:#64748b;font-size:0.8rem;display:flex;align-items:center;">
-                                分析时间：{{ fmtTime(analysis.created_at) }}
-                            </span>
+                            <button v-if="analysis" class="btn btn-outline btn-sm" @click="exportReport">导出</button>
+                            <button v-if="analysis" class="btn btn-danger btn-sm" @click="removeAnalysis">删除</button>
                         </div>
                     </template>
                 </div>
